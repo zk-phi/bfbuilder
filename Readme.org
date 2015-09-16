@@ -1,0 +1,42 @@
+* bfbuilder.el
+
+Emacs 用の Brainfuck 開発環境
+
+A brainfuck IDE with interactive debugger
+
+** Features
+
+- syntax highlighting
+- automatic indentation
+- interactive debugger
+- abbrev for repetition
+
+** Installation
+
+Load "bfbuilder.el" and setup ~auto-mode-alist~
+
+: (require 'bfbuilder)
+: (add-to-list 'auto-mode-alist '("\\.bf$" . bfbuilder-mode))
+
+then ~bfbuilder-mode~ is activated when opening ".bf" files.
+
+** Keybindings
+
+~TAB~ expands the last abbrev if exists, or indent current line
+otherwise. Abbrev is something like ~10+~ and it expands to
+~++++++++++~.
+
+~C-c C-c~ opens the debugger. You can execute the program step by step
+with following keybindings. Any other key closes the debugger.
+
+- ~j~ :: execute current line
+- ~l~ :: execute an instruction
+- ~L~ :: execute a group of instructions like ~++++++~
+- ~g~ :: reset the debugger state
+- ~G~ :: execute until it reaches a breakpoint (or EOF)
+
+** TODOs
+
+- implement undo (backward execution) feature for the debugger
+
+Contributions are welcome!

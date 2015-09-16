@@ -1,0 +1,247 @@
+;;; bfbuilder.el --- A brainfuck IDE with interactive debugger
+
+;; Copyright (C) 2015 zk_phi
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 2 of the License, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program; if not, write to the Free Software
+;; Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+
+;; Author: zk_phi
+;; URL: http://hins11.yu-yake.com/
+;; Version: 1.0.0
+
+;;; Commentary:
+
+;; Require this script and setup `auto-mode-alist'
+;;
+;;   (require 'bfbuilder)
+;;   (add-to-list 'auto-mode-alist '("\\.bf$" . bfbuilder-mode))
+;;
+;; then `bfbuilder-mode' is activated when opening ".bf" files.
+
+;; For more informations, see "Readme".
+
+;;; Change Log:
+
+;; 1.0.0 first released
+
+;;; Code:
+
+(require 'cl-lib)
+
+(defconst bfbuilder-version "1.0.0")
+
+;; + customizable vars
+
+(defgroup bfbuilder nil
+  "A brainfuck IDE with interactive debugger"
+  :group 'languages)
+
+(defcustom bfbuilder-indent-width 4
+  "The indent width used by the editing buffer."
+  :group 'bfbuilder)
+
+(defcustom bfbuilder-debug-memory-size 10000
+  "Memory size (in bytes) for brainfuck interpreter."
+  :group 'bfbuilder)
+
+(defcustom bfbuilder-debug-visible-memory-size 20
+  "Size of visual portion of the memory."
+  :group 'bfbuilder)
+
+(defcustom bfbuilder-debug-breakpoint "@"
+  "String used to represent a breakpoint."
+  :group 'bfbuilder)
+
+(defcustom bfbuilder-overflow-wrap-around t
+  "Whether (+ 255 1) should be 0 or 255."
+  :group 'bfbuilder)
+
+(defcustom bfbuilder-mode-map
+  (let ((kmap (make-sparse-keymap)))
+    (define-key kmap (kbd "TAB") 'bfbuilder-TAB-dwim)
+    (define-key kmap (kbd "C-c C-c") 'bfbuilder-debug)
+    kmap)
+  "Keymap for `bfbuilder-mode'"
+  :group 'bfbuilder)
+
+(defcustom bfbuilder-debug-keymap
+  (let ((kmap (make-sparse-keymap)))
+    (define-key kmap (kbd "j") 'bfbuilder-debug-next-line)
+    (define-key kmap (kbd "l") 'bfbuilder-debug-forward-instr)
+    (define-key kmap (kbd "L") 'bfbuilder-debug-skip-instr-forward)
+    (define-key kmap (kbd "g") 'bfbuilder-debug)
+    (define-key kmap (kbd "G") 'bfbuilder-debug-forward-breakpoint)
+    kmap)
+  "Keymap for brainfuck interpreter."
+  :group 'bfbuilder)
+
+;; + majormode
+
+(defvar bfbuilder-font-lock-keywords
+  '(("[,.]" . font-lock-type-face)
+    ("[][]" . font-lock-keyword-face)
+    ("[><]" . font-lock-function-name-face)
+    ("[^]+,.<>[-]+" . font-lock-comment-face)))
+
+(defun bfbuilder-indent-line ()
+  "Indent current-line as BF code."
+  (interactive)
+  (indent-line-to (save-excursion
+                    (back-to-indentation)
+                    (* (- (nth 0 (syntax-ppss)) (if (eql (char-after) ?\]) 1 0))
+                       bfbuilder-indent-width))))
+
+(defun bfbuilder-TAB-dwim ()
+  "Expand repetition command or indent-line."
+  (interactive)
+  (if (and (not (use-region-p))
+           (looking-back "\\([0-9]+\\)\\([]+,.<>[-]\\)" nil t))
+      (replace-match (make-string (string-to-number (match-string 1))
+                                  (string-to-char (match-string 2))))
+    (indent-for-tab-command)))
+
+(define-derived-mode bfbuilder-mode prog-mode "BF"
+  "Major mode for editing BF programs."
+  :group 'bfbuilder
+  (set (make-local-variable 'indent-line-function) 'bfbuilder-indent-line)
+  (setq font-lock-defaults '(bfbuilder-font-lock-keywords)))
+
+;; + brainfuck debugger
+
+;; *TODO* IMPLEMENT "UNDO" (REVERSE-EXECUTION) FEATURE
+
+;; internal vars
+
+(defvar bfbuilder-debug--memory nil)      ; Vector<Int>
+(defvar bfbuilder-debug--ptr nil)         ; Int
+(defvar bfbuilder-debug--stdin nil)       ; List<Char>
+(defvar bfbuilder-debug--stdout nil)      ; reversed List<Char>
+
+(defvar bfbuilder-debug--saved-pos nil)
+(defvar bfbuilder-debug--saved-window-conf nil)
+
+;; utils
+
+(defun bfbuilder-debug--search-forward-instruction (&optional noerror)
+  (when (search-forward-regexp "[]+,.<>[-]" nil t)
+    (backward-char 1)
+    t))
+
+(defun bfbuilder-debug--dump-memory ()
+  (with-current-buffer (get-buffer-create "*BF-RUN*")
+    (erase-buffer)
+    ;; memory
+    (let ((mem-min (max (- bfbuilder-debug--ptr
+                           (/ bfbuilder-debug-visible-memory-size 2))
+                        0)))
+      ;; memory
+      (insert "memory: ")
+      (dotimes (n bfbuilder-debug-visible-memory-size)
+        (if (not (= (+ n mem-min) bfbuilder-debug--ptr))
+            (insert (format "%2x " (aref bfbuilder-debug--memory (+ n mem-min))))
+          (delete-char -1)
+          (insert (format "[%2x]" (aref bfbuilder-debug--memory (+ n mem-min))))))
+      (insert "\n"))
+    ;; stdin
+    (insert "stdin : " (mapconcat 'char-to-string bfbuilder-debug--stdin "") "\n")
+    ;; stdout
+    (insert "stdout: " (mapconcat 'char-to-string (reverse bfbuilder-debug--stdout) "") "\n")
+    ;; display
+    (display-buffer (current-buffer))))
+
+;; interactive commands
+
+(defun bfbuilder-debug (stdin)
+  "Start brainfuck interpreter/debugger."
+  (interactive (list (string-to-list (read-from-minibuffer "stdin: "))))
+  (setq bfbuilder-debug--memory            (make-string bfbuilder-debug-memory-size 0)
+        bfbuilder-debug--ptr               0
+        bfbuilder-debug--stdin             stdin
+        bfbuilder-debug--stdout            nil
+        bfbuilder-debug--saved-pos         (point)
+        bfbuilder-debug--saved-window-conf (current-window-configuration))
+  (goto-char (point-min))
+  (bfbuilder-debug--search-forward-instruction t)
+  (bfbuilder-debug--dump-memory)
+  (message "BF: Use [lLgGj] to control.")
+  (set-temporary-overlay-map
+   bfbuilder-debug-keymap
+   (lambda ()
+     (or (and (symbolp this-command)
+              (string-match "^bfbuilder-debug-" (symbol-name this-command)))
+         (progn
+           ;; cleanup
+           (goto-char bfbuilder-debug--saved-pos)
+           (when (buffer-live-p (get-buffer "*BF-RUN*"))
+             (kill-buffer "*BF-RUN*"))
+           (set-window-configuration bfbuilder-debug--saved-window-conf)
+           nil)))))
+
+(defun bfbuilder-debug-forward-instr ()
+  (interactive)
+  (unless (bfbuilder-debug--search-forward-instruction t)
+    (error "BF: Execution terminated."))
+  (cl-case (char-after)
+    ((?+) (aset bfbuilder-debug--memory bfbuilder-debug--ptr
+                (if bfbuilder-overflow-wrap-around
+                    (mod (+ (aref bfbuilder-debug--memory bfbuilder-debug--ptr) 1) 256)
+                  (min (+ (aref bfbuilder-debug--memory bfbuilder-debug--ptr) 1) 255))))
+    ((?-) (aset bfbuilder-debug--memory bfbuilder-debug--ptr
+                (if bfbuilder-overflow-wrap-around
+                    (mod (- (aref bfbuilder-debug--memory bfbuilder-debug--ptr) 1) 256)
+                  (max (- (aref bfbuilder-debug--memory bfbuilder-debug--ptr) 1) 0))))
+    ((?>) (if (>= (1+ bfbuilder-debug--ptr) bfbuilder-debug-memory-size)
+              (error "BF: Memory limit exceeded.")
+            (setq bfbuilder-debug--ptr (1+ bfbuilder-debug--ptr))))
+    ((?<) (if (<= bfbuilder-debug--ptr 0)
+              (error "BF: Pointer value got negative.")
+            (setq bfbuilder-debug--ptr (1- bfbuilder-debug--ptr))))
+    ((?\[) (when (zerop (aref bfbuilder-debug--memory bfbuilder-debug--ptr))
+             (forward-sexp 1)))
+    ((?\]) (unless (zerop (aref bfbuilder-debug--memory bfbuilder-debug--ptr))
+             (backward-up-list 1)))
+    ((?.) (push (aref bfbuilder-debug--memory bfbuilder-debug--ptr)
+                bfbuilder-debug--stdout))
+    ((?,) (aset bfbuilder-debug--memory bfbuilder-debug--ptr
+                (or (pop bfbuilder-debug--stdin) 255))))
+  (forward-char 1)
+  (bfbuilder-debug--search-forward-instruction t)
+  (bfbuilder-debug--dump-memory))
+
+(defun bfbuilder-debug-next-line ()
+  (interactive)
+  (let ((limit (save-excursion (forward-line 1) (point))))
+    (while (< (point) limit)
+      (bfbuilder-debug-forward-instr))))
+
+(defun bfbuilder-debug-skip-instr-forward ()
+  (interactive)
+  (let ((char (char-after)))
+    (while (= (char-after) char)
+      (bfbuilder-debug-forward-instr))))
+
+(defun bfbuilder-debug-forward-breakpoint ()
+  (interactive)
+  (let ((limit (save-excursion
+                 (if (search-forward bfbuilder-debug-breakpoint nil t)
+                     (point)
+                   (point-max)))))
+    (while (< (point) limit)
+      (bfbuilder-debug-forward-instr))))
+
+;; + provide
+
+(provide 'bfbuilder)
+
+;;; bfbuilder.el ends here
