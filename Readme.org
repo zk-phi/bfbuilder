@@ -4,6 +4,10 @@ Emacs 用の Brainfuck 開発環境
 
 A brainfuck IDE with interactive debugger
 
+** Screenshot
+
+[[file:./bfbuilder.png]]
+
 ** Features
 
 - syntax highlighting
