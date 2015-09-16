@@ -156,9 +156,9 @@
     ;; stdin
     (insert "stdin : " (mapconcat 'char-to-string bfbuilder-debug--stdin "") "\n")
     ;; stdout
-    (insert "stdout: " (mapconcat 'char-to-string (reverse bfbuilder-debug--stdout) "") "\n")
+    (insert "stdout: " (mapconcat 'char-to-string (reverse bfbuilder-debug--stdout) ""))
     ;; display
-    (display-buffer (current-buffer))))
+    (display-buffer-pop-up-window (current-buffer) '((window-height . 5)))))
 
 ;; interactive commands
 
