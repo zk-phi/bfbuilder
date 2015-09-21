@@ -105,11 +105,23 @@
 (defun bfbuilder-TAB-dwim ()
   "Expand repetition command or indent-line."
   (interactive)
-  (if (and (not (use-region-p))
-           (looking-back "\\([0-9]+\\)\\([]+,.<>[-]\\)" nil t))
-      (replace-match (make-string (string-to-number (match-string 1))
-                                  (string-to-char (match-string 2))))
-    (indent-for-tab-command)))
+  (cond ((use-region-p)
+         (indent-for-tab-command))
+        ((looking-back "\\([]+,.<>[-]\\)\\([0-9]+\\)" nil t)
+         (replace-match (make-string (string-to-number (match-string 2))
+                                     (string-to-char (match-string 1)))))
+        ((looking-back ")\\([0-9]+\\)" nil t)
+         (let ((cnt (string-to-number (match-string 1)))
+               (content-end (match-beginning 0))
+               (end (match-end 0))
+               content)
+           (goto-char (match-beginning 1))
+           (backward-sexp 1)
+           (setq content (buffer-substring (1+ (point)) content-end))
+           (delete-region (point) end)
+           (dotimes (_ cnt) (insert content))))
+        (t
+         (indent-for-tab-command))))
 
 (define-derived-mode bfbuilder-mode prog-mode "BF"
   "Major mode for editing BF programs."
@@ -208,7 +220,8 @@
               (error "BF: Pointer value got negative.")
             (setq bfbuilder-debug--ptr (1- bfbuilder-debug--ptr))))
     ((?\[) (when (zerop (aref bfbuilder-debug--memory bfbuilder-debug--ptr))
-             (forward-sexp 1)))
+             (forward-sexp 1)
+             (backward-char 1)))
     ((?\]) (unless (zerop (aref bfbuilder-debug--memory bfbuilder-debug--ptr))
              (backward-up-list 1)))
     ((?.) (push (aref bfbuilder-debug--memory bfbuilder-debug--ptr)

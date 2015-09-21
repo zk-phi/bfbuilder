@@ -27,8 +27,8 @@ then ~bfbuilder-mode~ is activated when opening ".bf" files.
 ** Keybindings
 
 ~TAB~ expands the last abbrev if exists, or indent current line
-otherwise. Abbrev is something like ~10+~ and it expands to
-~++++++++++~.
+otherwise. Abbrev is something like ~10+~, or ~(+-)3~ and it expands to
+~++++++++++~ or ~+-+-+-~ respectively.
 
 ~C-c C-c~ opens the debugger. You can execute the program step by step
 with following keybindings. Any other key closes the debugger.
@@ -42,5 +42,3 @@ with following keybindings. Any other key closes the debugger.
 ** TODOs
 
 - implement undo (backward execution) feature for the debugger
-
-Contributions are welcome!
