@@ -92,7 +92,7 @@
   '(("[,.]" . font-lock-type-face)
     ("[][]" . font-lock-keyword-face)
     ("[><]" . font-lock-function-name-face)
-    ("[^]+,.<>[-]+" . font-lock-comment-face)))
+    ("[^]+,.<>[-\s\t\n]+" . font-lock-comment-face)))
 
 (defun bfbuilder-indent-line ()
   "Indent current-line as BF code."
