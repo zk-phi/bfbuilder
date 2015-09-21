@@ -99,7 +99,7 @@
   (interactive)
   (indent-line-to (save-excursion
                     (back-to-indentation)
-                    (* (- (nth 0 (syntax-ppss)) (if (eql (char-after) ?\]) 1 0))
+                    (* (max (- (nth 0 (syntax-ppss)) (if (eql (char-after) ?\]) 1 0)) 0)
                        bfbuilder-indent-width))))
 
 (defun bfbuilder-TAB-dwim ()
