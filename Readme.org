@@ -2,7 +2,7 @@
 
 Emacs 用の Brainfuck 開発環境
 
-A brainfuck IDE with interactive debugger
+A brainfuck development environment with interactive debugger
 
 ** Screenshot
 
@@ -33,10 +33,10 @@ otherwise. Abbrev is something like ~+10~, or ~(+-)3~ and it expands to
 ~C-c C-c~ opens debugger. You can execute the program step by step
 with following keybindings. Any other key closes the debugger.
 
-- ~j~ :: execute a line
 - ~l~ :: execute an instruction
+- ~j~ :: execute a line
 - ~L~ :: execute a group of instructions like ~++++++~
-- ~g~ :: reset the debugger state
+- ~g~ :: initialize the debugger state
 - ~G~ :: execute forward until it reaches a breakpoint (~@~ by default)
 
 ** TODOs
