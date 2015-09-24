@@ -1,4 +1,4 @@
-;;; bfbuilder.el --- A brainfuck IDE with interactive debugger
+;;; bfbuilder.el --- A brainfuck development environment with interactive debugger
 
 ;; Copyright (C) 2015 zk_phi
 
@@ -44,7 +44,7 @@
 ;; + customizable vars
 
 (defgroup bfbuilder nil
-  "A brainfuck IDE with interactive debugger"
+  "A brainfuck development environment with interactive debugger"
   :group 'languages)
 
 (defcustom bfbuilder-indent-width 4
@@ -92,15 +92,20 @@
   '(("[,.]" . font-lock-type-face)
     ("[][]" . font-lock-keyword-face)
     ("[><]" . font-lock-function-name-face)
-    ("[^]+,.<>[-\s\t\n]+" . font-lock-comment-face)))
+    ("[^]\t\n\s+,.<>[-]" . font-lock-comment-face)))
+
 
 (defun bfbuilder-indent-line ()
   "Indent current-line as BF code."
   (interactive)
-  (indent-line-to (save-excursion
-                    (back-to-indentation)
-                    (* (max (- (nth 0 (syntax-ppss)) (if (eql (char-after) ?\]) 1 0)) 0)
-                       bfbuilder-indent-width))))
+  (let ((width (save-excursion
+                 (back-to-indentation)
+                 (and (looking-at "[]+,.<>[-]\\|$")
+                      (* (max (- (nth 0 (syntax-ppss))
+                                 (if (eql (char-after) ?\]) 1 0))
+                              0)
+                         bfbuilder-indent-width)))))
+    (when width (indent-line-to width))))
 
 (defun bfbuilder-TAB-dwim ()
   "Expand repetition command or indent-line."
