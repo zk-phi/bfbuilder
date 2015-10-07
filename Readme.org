@@ -26,11 +26,11 @@ then ~bfbuilder-mode~ is activated when opening ".bf" files.
 
 ** Keybindings
 
-~TAB~ expands the last abbrev if exists, or indent current line
-otherwise. Abbrev is something like ~+10~, or ~(+-)3~ and it expands to
-~++++++++++~ or ~+-+-+-~ respectively.
+~TAB~ expands the last abbrev if it exists, or indents current line
+otherwise. Abbrev is something like ~+10~, or ~(+-)3~ and they expand
+to ~++++++++++~ and ~+-+-+-~ respectively.
 
-~C-c C-c~ opens debugger. You can execute the program step by step
+~C-c C-c~ opens the debugger. You can execute the program step by step
 with following keybindings. Any other key closes the debugger.
 
 - ~l~ :: execute an instruction
