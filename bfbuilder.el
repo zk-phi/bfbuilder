@@ -50,22 +50,27 @@
 
 (defcustom bfbuilder-indent-width 4
   "The indent width used by the editing buffer."
+  :type 'integer
   :group 'bfbuilder)
 
 (defcustom bfbuilder-debug-memory-size 10000
   "Memory size (in bytes) for brainfuck interpreter."
+  :type 'integer
   :group 'bfbuilder)
 
 (defcustom bfbuilder-debug-visible-memory-size 20
   "Size of visual portion of the memory."
+  :type 'integer
   :group 'bfbuilder)
 
 (defcustom bfbuilder-debug-breakpoint "@"
   "String used to represent a breakpoint."
+  :type 'string
   :group 'bfbuilder)
 
 (defcustom bfbuilder-overflow-wrap-around t
   "Whether (+ 255 1) should be 0 or 255."
+  :type 'boolean
   :group 'bfbuilder)
 
 (defcustom bfbuilder-mode-map
@@ -74,6 +79,7 @@
     (define-key kmap (kbd "C-c C-c") 'bfbuilder-debug)
     kmap)
   "Keymap for `bfbuilder-mode'"
+  :type 'keymap
   :group 'bfbuilder)
 
 (defcustom bfbuilder-debug-keymap
@@ -85,6 +91,7 @@
     (define-key kmap (kbd "G") 'bfbuilder-debug-forward-breakpoint)
     kmap)
   "Keymap for brainfuck interpreter."
+  :type 'keymap
   :group 'bfbuilder)
 
 ;; + majormode
