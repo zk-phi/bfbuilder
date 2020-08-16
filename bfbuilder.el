@@ -18,8 +18,8 @@
 
 ;; Author: zk_phi
 ;; URL: http://hins11.yu-yake.com/
-;; Version: 1.0.0
-;; Package-Requires: ((cl-lib "0.3"))
+;; Version: 1.0.1
+;; Package-Requires: ((cl-lib "0.3") (emacs "24.4"))
 
 ;;; Commentary:
 
@@ -35,12 +35,13 @@
 ;;; Change Log:
 
 ;; 1.0.0 first released
+;; 1.0.1 Emacs 24.4 support
 
 ;;; Code:
 
 (require 'cl-lib)
 
-(defconst bfbuilder-version "1.0.0")
+(defconst bfbuilder-version "1.0.1")
 
 ;; + customizable vars
 
@@ -200,7 +201,7 @@
   (bfbuilder-debug--search-forward-instruction t)
   (bfbuilder-debug--dump-memory)
   (message "BF: Use [lLgGj] to control.")
-  (set-temporary-overlay-map
+  (set-transient-map
    bfbuilder-debug-keymap
    (lambda ()
      (or (and (symbolp this-command)
