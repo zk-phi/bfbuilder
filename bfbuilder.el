@@ -1,3 +1,4 @@
+;;; -*- lexical-binding: t -*-
 ;;; bfbuilder.el --- A brainfuck development environment with interactive debugger
 
 ;; Copyright (C) 2015 zk_phi
