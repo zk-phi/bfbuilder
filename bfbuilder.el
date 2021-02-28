@@ -160,7 +160,7 @@
 ;; utils
 
 (defun bfbuilder-debug--search-forward-instruction (&optional noerror)
-  (when (search-forward-regexp "[]+,.<>[-]" nil t)
+  (when (search-forward-regexp "[]+,.<>[-]" nil noerror)
     (backward-char 1)
     t))
 
